@@ -1,17 +1,37 @@
 from subprocess import Popen, PIPE
 
 class hpc:
-    def __init__(self, pf="bash"):
-        self.mem = 100
+    def __init__(self, pf="bash", **kwargs):
+        #set default values
+        self.cmd = ""
+        self.mem = 1000
         self.core = 1
         self.jn = "job"
-        self.err = "%J_%I.e" 
-        self.out = "%J_%I.o"
-        self.cmd = ""
+        self.err = "job.e" 
+        self.out = "job.o"
         self.queue = "normal"
         self.platform = pf.upper()
+        self.retries = 0
+        if "cmd" in kwargs:
+            set_cmd(kwargs["cmd"])
+        if "mem" in kwargs:
+            set_mem(kwargs["mem"])
+        if "core" in kwargs:
+            set_core(kwargs["core"])
+        if "jn" in kwargs:
+            set_jn(kwargs["jn"])
+        if "err" in kwargs:
+            set_err(kwargs["err"])
+        if "out" in kwargs:
+            set_out(kwargs["out"])
+        if "queue" in kwargs:
+            set_queue(kwargs["queue"])
     
-    def submit(self):
+    def run(self):
+        if len(self.cmd) == 0:
+            print ("command not found!")
+            return 1
+
         if self.platform == 'BASH':
             self.sub_cmd = [self.cmd]
         elif self.platform == 'LSF':
@@ -22,12 +42,22 @@ class hpc:
         elif self.platform == 'MPM':
             print ("not done yet")
         # try:
-        self.p = Popen(self.sub_cmd)
+        if self.platform == "BASH":
+            self.fout = open(self.out, 'w')
+            self.ferr = open(self.err, 'w')
+            self.p = Popen(self.sub_cmd, stdout=fout, stderr=ferr)
+        else:
+            self.p = Popen(self.sub_cmd)
+        return 0
         # except :
     def kill(self):
         self.p.kill()
 
     def wait(self):
+        exit_code = self.p.wait()
+        if self.platform == "BASH":
+            self.fout.close()
+            self.ferr.close()
         return self.p.wait()
     
     def speak(self):
@@ -61,5 +91,5 @@ class hpc:
             set_err(kwargs["err"])
         if "out" in kwargs:
             set_out(kwargs["out"])
-
-
+    def set_retries(self, times):
+        self.retries = times
