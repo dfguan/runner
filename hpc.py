@@ -61,6 +61,7 @@ class hpc:
                 self.ferr = open(self.err, 'w')
                 self.p = Popen(self.sub_cmd, stdout=self.fout, stderr=self.ferr)
             else:
+                # print (self.sub_cmd)
                 self.p = Popen(self.sub_cmd)
         except FileNotFoundError:
             print ("[E::run] Excutable file not found")

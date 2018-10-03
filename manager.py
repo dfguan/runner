@@ -18,6 +18,7 @@ class manager:
         with open(conf, "r") as f:
             self.sys = json.load(f)
         f.close()
+        print (self.sys)
         if "retries" in kwargs:
             self.retries = kwargs["retries"]
 
@@ -30,27 +31,28 @@ class manager:
         for j in jobq: # problem: what if job has been finished?
             rtn = j.wait()
             if rtn:
-                print ("command {} failed, return code: {}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd, str(rtn))))
+                print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(rtn)))
                 while j.retries and rtn and j.platform in self.sys:
                     if self.sys[j.platform]["errors"][str(rtn)] == "MEM": # these codes are related to your system, need a config file
                         print ("extend memory and try again")
                         j.ext_mem()
-                        if self.adj_queue(self.sys[j.platform]["queues"]):
-                            j.retries = 0
-                            print ("fail to find a suitable queue")
-                        else:
+                        if self.adj_queue(j, self.sys[j.platform]["queues"]):
+                            # print ("re-run the job {}".format(j.cmd))
                             j.run()    
                             j.retries -= 1
                             rtn = j.wait()
-                    elif self.sys[j.platform]["errors"][str(rtn)] == "RUNTIME": # these codes are related to your system, need a config file
-                        print ("change job queue and try again")
-                        if self.change_queue(self.sys[j.platform]["queues"]):
+                        else:
                             print ("fail to find a suitable queue")
                             j.retries = 0
-                        else:
+                    elif self.sys[j.platform]["errors"][str(rtn)] == "RUNTIME": # these codes are related to your system, need a config file
+                        print ("change job queue and try again")
+                        if self.change_queue(j, self.sys[j.platform]["queues"]):
                             j.run()
                             j.retries -= 1
                             rtn = j.wait()
+                        else:
+                            print ("fail to find a suitable queue")
+                            j.retries = 0
                     else:
                         print ("unkown error, please check error log")
                         j.retries = 0
@@ -58,47 +60,43 @@ class manager:
                     self.tag_job(j)
             else:
                 self.tag_job(j)
-    def adj_queue(self, j):
-        [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][j.queue][0].split(" ")]
+    def adj_queue(self, j, qs):
+        [lm, hm] = [int(z) for z in qs[j.queue][0].split(" ")]
         found = False
         if j.mem >= hm:
-            for q in self.sys[j.platform]["queues"]:
-                [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][q][0].split(" ")]
+            for q in qs:
+                [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
                 if j.mem < hm:
                     j.set_queue(q)
                     found = True 
                     break
-            if found:
-                return 0
-            else:
-                return 1
-        
-        return 0
+        else:
+            found = True
+        return found 
     
-    def change_queue(self, j):
-        t = 2 * self.sys[j.platform]["queues"][j.queue][1]
+    def change_queue(self, j, qs):
+        t = 2 * qs[j.queue][1]
         found = False
-        for q in self.sys[j.platform]["queues"]:
-            [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][q][0].split(" ")]
-            tl = self.sys[j.platform]["queues"][q][1]
+        for q in qs:
+            [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
+            tl = qs[q][1]
             if t < tl and j.mem < hm:
                 j.set_queue(q)
                 found = True 
                 break
-        if found:
-            return 0
-        else:
-            return 1
+        return found
 
     def tag_job(self, j):
         #tag a job if run sucessfully
         cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
+        print (cmd)
         hashmark =hashlib.sha256(cmd.encode('utf-8')).hexdigest()
         
         dirn = os.path.dirname(j.out)
         if not dirn:
             dirn = '.'
         tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
+        # print ("{} tag ".format(cmd))
         open(tag_fn,'w').close()
     
     def check_job(self, j):
@@ -111,7 +109,7 @@ class manager:
             dirn = '.'
         tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
         if os.path.isfile(tag_fn):
-            print ("run before, skip")
+            print ("{} ran before, skip".format(cmd))
             return True 
         else:
             return False 
