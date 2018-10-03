@@ -3,29 +3,43 @@ from subprocess import Popen, PIPE
 class hpc:
     def __init__(self, pf="bash", **kwargs):
         #set default values
-        self.cmd = ""
-        self.mem = 1000
-        self.core = 1
-        self.jn = "job"
-        self.err = "job.e" 
-        self.out = "job.o"
-        self.queue = "normal"
         self.platform = pf.upper()
         self.retries = 0
+        
         if "cmd" in kwargs:
-            set_cmd(kwargs["cmd"])
+            self.cmd = kwargs["cmd"]
+        else:
+            self.cmd = ""
+        
         if "mem" in kwargs:
-            set_mem(kwargs["mem"])
+            self.mem = kwargs["mem"]
+        else:
+            self.mem = 1000
+        
         if "core" in kwargs:
-            set_core(kwargs["core"])
+            self.core = kwargs["core"]
+        else:
+            self.core = 1
+       
         if "jn" in kwargs:
-            set_jn(kwargs["jn"])
+            self.jn = kwargs["jn"]
+        else:
+            self.jn = "job"
+        
         if "err" in kwargs:
-            set_err(kwargs["err"])
+            self.err = kwargs["err"]
+        else:
+            self.err = "job.e" 
+        
         if "out" in kwargs:
-            set_out(kwargs["out"])
+            self.out = kwargs["out"]
+        else:
+            self.out = "job.o"
+        
         if "queue" in kwargs:
-            set_queue(kwargs["queue"])
+            self.queue = kwargs["queue"]
+        else:
+            self.queue = "normal"
     
     def run(self):
         if len(self.cmd) == 0:
@@ -33,7 +47,7 @@ class hpc:
             return 1
 
         if self.platform == 'BASH':
-            self.sub_cmd = [self.cmd]
+            self.sub_cmd = self.cmd
         elif self.platform == 'LSF':
             # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
             self.sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
@@ -41,27 +55,36 @@ class hpc:
             print ("not done yet")
         elif self.platform == 'MPM':
             print ("not done yet")
-        # try:
-        if self.platform == "BASH":
-            self.fout = open(self.out, 'w')
-            self.ferr = open(self.err, 'w')
-            self.p = Popen(self.sub_cmd, stdout=fout, stderr=ferr)
-        else:
-            self.p = Popen(self.sub_cmd)
+        try:
+            if self.platform == "BASH":
+                self.fout = open(self.out, 'w')
+                self.ferr = open(self.err, 'w')
+                self.p = Popen(self.sub_cmd, stdout=self.fout, stderr=self.ferr)
+            else:
+                self.p = Popen(self.sub_cmd)
+        except FileNotFoundError:
+            print ("[E::run] Excutable file not found")
+            return 1
         return 0
         # except :
     def kill(self):
-        self.p.kill()
+        if hasattr(self, 'p'):
+            self.p.kill()
 
     def wait(self):
-        exit_code = self.p.wait()
-        if self.platform == "BASH":
-            self.fout.close()
-            self.ferr.close()
-        return self.p.wait()
+        exit_code = 0
+        if hasattr(self, 'p'):
+            exit_code = self.p.wait()
+            if self.platform == "BASH":
+                self.fout.close()
+                self.ferr.close()
+        return exit_code 
     
     def speak(self):
-        print (self.sub_cmd) 
+        if hasattr(self, 'sub_cmd'):
+            print (self.sub_cmd)
+        else:
+            print (self.cmd)
 
     def set_cmd(self, cmd):
         self.cmd = cmd
@@ -93,3 +116,10 @@ class hpc:
             set_out(kwargs["out"])
     def set_retries(self, times):
         self.retries = times
+    
+    def ext_mem(self):
+        self.mem *= 2
+    
+
+
+

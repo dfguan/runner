@@ -1,29 +1,117 @@
 #manage hpc jobs
-
+# only take two types of error
+#yesterday	High priority queue (as in "I needed this run yesterday"). You can only run 10 jobs at a time in this queue.
+# small	Queue for short running jobs (< 1 minute). Has job-chunking enabled (see the LSF docs). Such short jobs are generally a bad idea; try to make your jobs run for at least 10 minutes, if possible, and use other queues.
+# normal	The default queue. For jobs running for up to an hour each. There is a hard limit of 12 hours, after which your job will be killed.
+# hugemem	Queue for jobs which require > 196 GB of memory. You must specify how much memory you expect your job to use.
+# teramem	Queue for jobs which require > 745 GB of memory. You must specify how much memory you expect your job to use.
+# long	Queue for long running jobs (> 1 hour). There is a hard limit of 48 hours, after which the job will be killed. [1, 48] 
+# basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
+#Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
+import sys, json, os, hashlib
+#Q1: not sure if mananger can be run parallelly
+#Q2: access hpc members directly, is it good?
 class manager:
-    def __init__(self, **kwargs)
+    def __init__(self, conf, **kwargs):
         self.id = "I am the manager"
-        self.retries = 1
+        self.retries = 0
+        with open(conf, "r") as f:
+            self.sys = json.load(f)
+        f.close()
         if "retries" in kwargs:
-            set_retries(kwargs["retries"])
+            self.retries = kwargs["retries"]
 
-
-    def cont(self, jobq):
+    def start(self, jobq):
         for j in jobq:
-            j.set_retries(self.retries)
-            j.run()
-        for j in jobq:
-            if j.wait():
-                if j.retries: 
-                    rtn = diagnose_failure(j)
-                    if rtn == 1: # mem error
-                        j.ext_mem() #extend mem, may need to change queueif too large
-                    elif rtn == 2: # time is not enough have no idea may be we need a config file of queues and its mem and time limits
-                        j.
+            if j.platform != "BASH":
+                j.set_retries(self.retries)
+            if self.check_job(j) or j.run():
+                sys.exit(1)
+        for j in jobq: # problem: what if job has been finished?
+            rtn = j.wait()
+            if rtn:
+                print ("command {} failed, return code: {}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd, str(rtn))))
+                while j.retries and rtn and j.platform in self.sys:
+                    if self.sys[j.platform]["errors"][str(rtn)] == "MEM": # these codes are related to your system, need a config file
+                        print ("extend memory and try again")
+                        j.ext_mem()
+                        if self.adj_queue(self.sys[j.platform]["queues"]):
+                            j.retries = 0
+                            print ("fail to find a suitable queue")
+                        else:
+                            j.run()    
+                            j.retries -= 1
+                            rtn = j.wait()
+                    elif self.sys[j.platform]["errors"][str(rtn)] == "RUNTIME": # these codes are related to your system, need a config file
+                        print ("change job queue and try again")
+                        if self.change_queue(self.sys[j.platform]["queues"]):
+                            print ("fail to find a suitable queue")
+                            j.retries = 0
+                        else:
+                            j.run()
+                            j.retries -= 1
+                            rtn = j.wait()
+                    else:
+                        print ("unkown error, please check error log")
+                        j.retries = 0
+                if rtn == 0:
+                    self.tag_job(j)
+            else:
+                self.tag_job(j)
+    def adj_queue(self, j):
+        [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][j.queue][0].split(" ")]
+        found = False
+        if j.mem >= hm:
+            for q in self.sys[j.platform]["queues"]:
+                [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][q][0].split(" ")]
+                if j.mem < hm:
+                    j.set_queue(q)
+                    found = True 
+                    break
+            if found:
+                return 0
+            else:
+                return 1
+        
+        return 0
+    
+    def change_queue(self, j):
+        t = 2 * self.sys[j.platform]["queues"][j.queue][1]
+        found = False
+        for q in self.sys[j.platform]["queues"]:
+            [lm, hm] = [int(z) for z in self.sys[j.platform]["queues"][q][0].split(" ")]
+            tl = self.sys[j.platform]["queues"][q][1]
+            if t < tl and j.mem < hm:
+                j.set_queue(q)
+                found = True 
+                break
+        if found:
+            return 0
+        else:
+            return 1
 
-    def dgn_fail(self, j)
-         
-            
-
-    def set_retries(self, times):
-        self.retries = times
+    def tag_job(self, j):
+        #tag a job if run sucessfully
+        cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
+        hashmark =hashlib.sha256(cmd.encode('utf-8')).hexdigest()
+        
+        dirn = os.path.dirname(j.out)
+        if not dirn:
+            dirn = '.'
+        tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
+        open(tag_fn,'w').close()
+    
+    def check_job(self, j):
+        # check if a job has run before 
+        cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
+        hashmark =hashlib.sha256(cmd.encode('utf-8')).hexdigest()
+        
+        dirn = os.path.dirname(j.out)
+        if not dirn:
+            dirn = '.'
+        tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
+        if os.path.isfile(tag_fn):
+            print ("run before, skip")
+            return True 
+        else:
+            return False 

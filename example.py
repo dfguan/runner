@@ -1,8 +1,11 @@
 from hpc import hpc
-
+from manager import manager
 
 if __name__ == '__main__':
-    p = hpc('lsf')
-    p.set_cmd("ls -l > files")
-    p.submit()
-    p.speak()
+    m = manager("./sys.config", retries=1)  
+    procs = []
+    # p = hpc(cmd="ls -l > files")
+    p = hpc(cmd=["ls", '-l'], out="files")
+    # p.speak()
+    procs.append(p)
+    m.start(procs)
