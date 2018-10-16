@@ -17,13 +17,13 @@ def func1(man):
 
 
 if __name__ == '__main__':
-    m = manager("./sys.config", retries=5)  
+    m = manager("./sys.config", retries=5) # jobs manager  
     procs = []
     # p = hpc(cmd="ls -l > files")
     # p = hpc(cmd=["ls", '-l'], out="files")
-    p = hpc("lsf", cmd="./test 12000000000", mem=1000, out="test_1.o", err="test_1.e")
+    p = hpc("lsf", cmd="./test 1000000", mem=1000, out="test_1.o", err="test_1.e") # initiate a HPC job object
     # p.speak()
-    procs.append(p)
+    procs.append([p]) # only take list as argument
     m.start(procs)
     # procs2 = []
     # p = Process(target=func2, args=(m,))
