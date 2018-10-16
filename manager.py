@@ -23,43 +23,58 @@ class manager:
             self.retries = kwargs["retries"]
 
     def start(self, jobq):
+        rjobq = []
         for j in jobq:
             if j.platform != "BASH":
                 j.set_retries(self.retries)
-            if self.check_job(j) or j.run():
+            if self.check_job(j): #been done
+                j.set_rtn(0) #has been run successfully
+                continue
+            elif j.run():
                 sys.exit(1)
-        for j in jobq: # problem: what if job has been finished?
-            rtn = j.wait()
-            if rtn:
-                print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(rtn)))
-                while j.retries and rtn and j.platform in self.sys:
-                    if self.sys[j.platform]["errors"][str(rtn)] == "MEM": # these codes are related to your system, need a config file
+            else:
+                rjobq.append(j)
+        # artn = 0     
+        for j in rjobq: # problem: what if job has been finished?
+            j.wait() # or to keep the return values and check next?
+            if j.rtn:
+                print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
+                while j.retries and j.rtn:
+                    tp = self.check_errt(j)
+                    if tp == 1: # these codes are related to your system, need a config file
                         print ("extend memory and try again")
                         j.ext_mem()
                         if self.adj_queue(j, self.sys[j.platform]["queues"]):
-                            # print ("re-run the job {}".format(j.cmd))
                             j.run()    
                             j.retries -= 1
-                            rtn = j.wait()
+                            j.wait()
                         else:
                             print ("fail to find a suitable queue")
                             j.retries = 0
-                    elif self.sys[j.platform]["errors"][str(rtn)] == "RUNTIME": # these codes are related to your system, need a config file
+                    elif tp == 2: # these codes are related to your system, need a config file
                         print ("change job queue and try again")
                         if self.change_queue(j, self.sys[j.platform]["queues"]):
                             j.run()
                             j.retries -= 1
-                            rtn = j.wait()
+                            j.wait()
                         else:
                             print ("fail to find a suitable queue")
                             j.retries = 0
                     else:
                         print ("unkown error, please check error log")
                         j.retries = 0
-                if rtn == 0:
+                if j.rtn == 0:
                     self.tag_job(j)
+                # else:
+                    # artn = 1
             else:
                 self.tag_job(j)
+        for j in rjobq:
+            if j.rtn:
+                return j.rtn
+        return 0
+        # return artn
+
     def adj_queue(self, j, qs):
         [lm, hm] = [int(z) for z in qs[j.queue][0].split(" ")]
         found = False
@@ -74,6 +89,20 @@ class manager:
             found = True
         return found 
     
+    def check_errt(self, j):
+        rtn = j.rtn
+        if j.platform in self.sys:
+            if self.sys[j.platform]["errors"]["MEM"] == rtn:
+                return 1 #mem error
+            elif self.sys[j.platform]["errors"]["RUNTIME"] == rtn:
+                return 2 # runtime error
+            else:
+                return 3 # unkown maybe will set later
+        else:
+            return 4 # unkown
+
+
+
     def change_queue(self, j, qs):
         t = 2 * qs[j.queue][1]
         found = False

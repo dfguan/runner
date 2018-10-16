@@ -40,7 +40,7 @@ class hpc:
             self.queue = kwargs["queue"]
         else:
             self.queue = "normal"
-    
+        self.rtn = 1 
     def run(self):
         if len(self.cmd) == 0:
             print ("command not found!")
@@ -64,7 +64,7 @@ class hpc:
                 # print (self.sub_cmd)
                 self.p = Popen(self.sub_cmd)
         except FileNotFoundError:
-            print ("[E::run] Excutable file not found")
+            print ("File {} not found".format(self.sub_cmd[0]))
             return 1
         return 0
         # except :
@@ -73,13 +73,13 @@ class hpc:
             self.p.kill()
 
     def wait(self):
-        exit_code = 0
+        self.rtn = 0
         if hasattr(self, 'p'):
-            exit_code = self.p.wait()
+            self.rtn = self.p.wait()
             if self.platform == "BASH":
                 self.fout.close()
                 self.ferr.close()
-        return exit_code 
+        # return exit_code 
     
     def speak(self):
         if hasattr(self, 'sub_cmd'):
@@ -121,6 +121,7 @@ class hpc:
     def ext_mem(self):
         self.mem *= 2
     
-
+    def set_rtn(self, n):
+        self.rtn = n
 
 
