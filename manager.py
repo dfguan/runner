@@ -9,6 +9,8 @@
 # basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
 #Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
 import sys, json, os, hashlib
+from collections import OrderedDict
+
 #Q1: not sure if mananger can be run parallelly
 #Q2: access hpc members directly, is it good?
 class manager:
@@ -16,7 +18,7 @@ class manager:
         self.id = "I am the manager"
         self.retries = 0
         with open(conf, "r") as f:
-            self.sys = json.load(f)
+            self.sys = json.load(f, object_pairs_hook=OrderedDict)
         f.close()
         print (self.sys)
         if "retries" in kwargs:
