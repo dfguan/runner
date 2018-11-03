@@ -53,16 +53,23 @@ class hpc:
             self.sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
         elif self.platform == 'SLURM':
             print ("not done yet")
+            return 1
         elif self.platform == 'MPM':
             print ("not done yet")
+            return 1
+        else:
+            print ("{} is not supported".format(self.platform))
+            return 1
         try:
             if self.platform == "BASH":
                 self.fout = open(self.out, 'w')
                 self.ferr = open(self.err, 'w')
                 self.p = Popen(self.sub_cmd, stdout=self.fout, stderr=self.ferr)
-            else:
+            elif self.platform == "LSF":
                 # print (self.sub_cmd)
                 self.p = Popen(self.sub_cmd)
+            else:
+                return 1
         except FileNotFoundError:
             print ("File {} not found".format(self.sub_cmd[0]))
             return 1
