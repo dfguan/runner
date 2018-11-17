@@ -28,19 +28,30 @@ class manager:
     def start(self, jobq, force=False, skip=False):
         if skip:
             return 0
-
         rjobq = []
         for j in jobq:
             if j.platform != "BASH":
                 j.set_retries(self.retries)
-            if force:
-                self.rm_tag(j)
+            if force or not self.check_job(j): #force or not run sucessfully before
+                if force:
+                    self.rm_tag(j)
                 rjobq.append(j)
                 if j.run():
                     j.set_retries(0)
                     j.set_rtn(1)
-            elif self.check_job(j):
-                continue
+            
+            # if force:
+                # rjobq.append(j)
+                # if j.run():
+                    # j.set_retries(0)
+                    # j.set_rtn(1)
+            # elif self.check_job(j):
+                # continue
+            # else:
+                # rjobq.append(j)
+                # if j.run():
+                    # j.set_retries(0)
+                    # j.set_rtn(1)
             # if self.check_job(j) && not force: #been done
                 # j.set_rtn(0) #has been run successfully
                 # continue
@@ -156,7 +167,7 @@ class manager:
         tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
         # print ("{} tag ".format(cmd))
         with open(tag_fn,'w') as f:
-            f.write("CMD: {0}\nTIME: {1}\n".format(cmd, datetime.now()))
+            f.write("CMD : {0}\nTIME: {1}\n".format(cmd, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
             f.close() 
 
     def check_job(self, j):
