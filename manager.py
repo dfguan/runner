@@ -9,6 +9,7 @@
 # basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
 #Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
 import sys, json, os, hashlib
+from datetime import datetime
 from collections import OrderedDict
 
 #Q1: not sure if mananger can be run parallelly
@@ -24,20 +25,33 @@ class manager:
         if "retries" in kwargs:
             self.retries = kwargs["retries"]
 
-    def start(self, jobq):
+    def start(self, jobq, force=False, skip=False):
+        if skip:
+            return 0
+
         rjobq = []
         for j in jobq:
             if j.platform != "BASH":
                 j.set_retries(self.retries)
-            if self.check_job(j): #been done
-                j.set_rtn(0) #has been run successfully
-                continue
-            elif j.run():
-                sys.exit(1)
-            else:
+            if force:
+                self.rm_tag(j)
                 rjobq.append(j)
+                if j.run():
+                    j.set_retries(0)
+                    j.set_rtn(1)
+            elif self.check_job(j):
+                continue
+            # if self.check_job(j) && not force: #been done
+                # j.set_rtn(0) #has been run successfully
+                # continue
+            # elif j.run():
+                # j.set_retries(0)
+                # j.set_rtn(1)
+                # sys.exit(1) # correct or should 
+            # else:
+                # rjobq.append(j)
         # artn = 0     
-        for j in rjobq: # problem: what if job has been finished?
+        for j in rjobq: # can be problem if job has been finished?
             j.wait() # or to keep the return values and check next?
             if j.rtn:
                 print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
@@ -116,11 +130,10 @@ class manager:
                 found = True 
                 break
         return found
-
-    def tag_job(self, j):
+    
+    def rm_tag(self, j):
         #tag a job if run sucessfully
         cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
-        print (cmd)
         hashmark =hashlib.sha256(cmd.encode('utf-8')).hexdigest()
         
         dirn = os.path.dirname(j.out)
@@ -128,8 +141,24 @@ class manager:
             dirn = '.'
         tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
         # print ("{} tag ".format(cmd))
-        open(tag_fn,'w').close()
-    
+        if os.path.isfile(tag_fn):
+            os.remove(tag_fn) # what if failed to remove file?
+        # open(tag_fn,'w').close()
+
+    def tag_job(self, j):
+        #tag a job if run sucessfully
+        cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
+        hashmark =hashlib.sha256(cmd.encode('utf-8')).hexdigest()
+        
+        dirn = os.path.dirname(j.out)
+        if not dirn:
+            dirn = '.'
+        tag_fn = '{0}/.{1}.done'.format(dirn, hashmark) 
+        # print ("{} tag ".format(cmd))
+        with open(tag_fn,'w') as f:
+            f.write("CMD: {0}\nTIME: {1}\n".format(cmd, datetime.now()))
+            f.close() 
+
     def check_job(self, j):
         # check if a job has run before 
         cmd = j.cmd if type(j.cmd) == str else " ".join(j.cmd)
