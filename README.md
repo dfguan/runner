@@ -7,7 +7,7 @@ A simple python wrapper for job submitting
 3. resubmit jobs that fails (Done, tested for LSF).
 
 ## To Do
-- [ ] force functions/jobs to run
+- [x] force functions/jobs to run
 - [ ] submit slurm jobs 
 - [ ] draft wiki pages
 
