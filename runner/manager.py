@@ -15,13 +15,15 @@ from collections import OrderedDict
 #Q1: not sure if mananger can be run parallelly
 #Q2: access hpc members directly, is it good?
 class manager:
-    def __init__(self, conf, **kwargs):
+    def __init__(self, conf="magic", **kwargs):
         self.id = "I am the manager"
         self.retries = 0
+        if conf == "magic":
+            conf = os.path.join(os.path.dirname(__file__), "sys.config")
         with open(conf, "r") as f:
             self.sys = json.load(f, object_pairs_hook=OrderedDict)
         f.close()
-        print (self.sys)
+        # print (self.sys)
         if "retries" in kwargs:
             self.retries = kwargs["retries"]
 

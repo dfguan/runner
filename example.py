@@ -1,5 +1,5 @@
-from hpc import hpc
-from manager import manager
+from runner.hpc import hpc
+from runner.manager import manager
 from multiprocessing import Process
 
 def func2(man):
@@ -17,7 +17,7 @@ def func1(man):
 
 
 if __name__ == '__main__':
-    m = manager("./sys.config", retries=5)  
+    m = manager(retries=5)  
     procs = []
     # p = hpc(cmd="ls -l > files")
     # p = hpc(cmd=["ls", '-l'], out="files")
