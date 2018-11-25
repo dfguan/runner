@@ -8,6 +8,6 @@ A simple python wrapper for job submitting
 
 ## To Do
 - [x] force functions/jobs to run
+- [ ] use process watchers instead of wait func
 - [ ] submit slurm jobs 
 - [ ] draft wiki pages
-
