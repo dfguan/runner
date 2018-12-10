@@ -8,7 +8,7 @@
 # long	Queue for long running jobs (> 1 hour). There is a hard limit of 48 hours, after which the job will be killed. [1, 48] 
 # basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
 #Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
-import sys, json, os, hashlib
+import sys, json, os, hashlib, time
 from datetime import datetime
 from collections import OrderedDict
 
@@ -32,8 +32,8 @@ class manager:
             return 0
         rjobq = []
         for j in jobq:
-            if j.platform != "BASH":
-                j.set_retries(self.retries)
+            # if j.platform != "BASH":
+            j.set_retries(self.retries)
             if force or not self.check_job(j): #force or not run sucessfully before
                 if force:
                     self.rm_tag(j)
@@ -63,45 +63,55 @@ class manager:
                 # sys.exit(1) # correct or should 
             # else:
                 # rjobq.append(j)
-        # artn = 0     
-        for j in rjobq: # can be problem if job has been finished?
-            j.wait() # or to keep the return values and check next?
-            if j.rtn:
-                print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
-                while j.retries and j.rtn:
-                    tp = self.check_errt(j)
-                    if tp == 1: # these codes are related to your system, need a config file
-                        print ("extend memory and try again")
-                        j.ext_mem()
-                        if self.adj_queue(j, self.sys[j.platform]["queues"]):
-                            j.run()    
-                            j.retries -= 1
-                            j.wait()
-                        else:
-                            print ("fail to find a suitable queue")
-                            j.retries = 0
-                    elif tp == 2: # these codes are related to your system, need a config file
-                        print ("change job queue and try again")
-                        if self.change_queue(j, self.sys[j.platform]["queues"]):
-                            j.run()
-                            j.retries -= 1
-                            j.wait()
-                        else:
-                            print ("fail to find a suitable queue")
-                            j.retries = 0
-                    else:
-                        print ("unkown error, please check error log")
-                        j.retries = 0
-                if j.rtn == 0:
-                    self.tag_job(j)
-                # else:
-                    # artn = 1
-            else:
-                self.tag_job(j)
-        for j in rjobq:
-            if j.rtn:
-                return j.rtn
-        return 0
+        # artn = 0 
+        while True:
+            for j in rjobq: # can be problem if job has been finished?
+                j.check_status()
+                # j.wait() # or to keep the return values and check next?
+                if j.rtn is not None: # better not access j.rtn directly ?  
+                    if j.rtn:
+                        print ("command {0} failed, return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
+                        if j.retries:
+                            tp = self.check_errt(j)
+                            if tp == 1: # these codes are related to your system, need a config file
+                                print ("extend memory and try again")
+                                j.ext_mem()
+                                if self.adj_queue(j, self.sys[j.platform]["queues"]):
+                                    j.run()    
+                                    j.decre_retries()
+                                else:
+                                    print ("fail to find a suitable queue")
+                                    j.reset_retries()
+                            elif tp == 2: # these codes are related to your system, need a config file
+                                print ("change job queue and try again")
+                                if self.change_queue(j, self.sys[j.platform]["queues"]):
+                                    j.run()
+                                    j.decre_retries()
+                                else:
+                                    print ("fail to find a suitable queue")
+                                    j.reset_retries()
+                            else:
+                                print ("unkown error, please check error log")
+                                j.reset_retries()
+                    elif not j.suc:
+                        self.tag_job(j)
+                        j.set_suc() # in case of tag again, better way?
+                        j.reset_retries()
+                    # else:
+                        # artn = 1
+            if all(j.retries == 0 for j in rjobq):
+                break
+            time.sleep(105)    
+        suc = all(j.rtn == 0 for j in rjobq)
+        if suc:
+            return 0
+        else:
+            return 1
+        # for j in rjobq:
+            # if j.rtn:
+                # return j.rtn
+        # return 0
+        
         # return artn
 
     def adj_queue(self, j, qs):

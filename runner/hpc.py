@@ -5,6 +5,8 @@ class hpc:
         #set default values
         self.platform = pf.upper()
         self.retries = 0
+        self.rtn = 1 
+        self.suc = 0
         
         if "cmd" in kwargs:
             self.cmd = kwargs["cmd"]
@@ -40,7 +42,6 @@ class hpc:
             self.queue = kwargs["queue"]
         else:
             self.queue = "normal"
-        self.rtn = 1 
     def run(self):
         if len(self.cmd) == 0:
             print ("command not found!")
@@ -80,7 +81,6 @@ class hpc:
             self.p.kill()
 
     def wait(self):
-        self.rtn = 0
         if hasattr(self, 'p'):
             self.rtn = self.p.wait()
             if self.platform == "BASH":
@@ -130,5 +130,18 @@ class hpc:
     
     def set_rtn(self, n):
         self.rtn = n
+    def reset_retries(self):
+        self.retries = 0
+    def set_suc(self):
+        self.suc = 1
 
+    def decre_retries(self):
+        self.retries = self.retries - 1
 
+    def check_status(self):
+        if hasattr(self, 'p'):
+            self.rtn = self.p.poll()
+            if self.platform == "BASH" and self.rtn is not None:
+                self.fout.close()
+                self.ferr.close()
+        return self.rtn
