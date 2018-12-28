@@ -15,9 +15,10 @@ from collections import OrderedDict
 #Q1: not sure if mananger can be run parallelly
 #Q2: access hpc members directly, is it good?
 class manager:
-    def __init__(self, conf="magic", **kwargs):
+    def __init__(self, conf="magic", wait=105, **kwargs):
         self.id = "I am the manager"
         self.retries = 0
+        self.wait = 105
         if conf == "magic":
             conf = os.path.join(os.path.dirname(__file__), "sys.config")
         with open(conf, "r") as f:
@@ -26,6 +27,8 @@ class manager:
         # print (self.sys)
         if "retries" in kwargs:
             self.retries = kwargs["retries"]
+        if "wait" in kwargs:
+            self.wait = kwargs["wait"]
 
     def start(self, jobq, force=False, skip=False):
         if skip:
