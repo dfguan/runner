@@ -104,7 +104,7 @@ class manager:
                         # artn = 1
             if all(j.retries == 0 for j in rjobq):
                 break
-            time.sleep(105)    
+            time.sleep(self.wait)    
         suc = all(j.rtn == 0 for j in rjobq)
         if suc:
             return 0
