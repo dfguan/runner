@@ -1,13 +1,4 @@
 #manage hpc jobs
-# only take two types of error
-#yesterday	High priority queue (as in "I needed this run yesterday"). You can only run 10 jobs at a time in this queue.
-# small	Queue for short running jobs (< 1 minute). Has job-chunking enabled (see the LSF docs). Such short jobs are generally a bad idea; try to make your jobs run for at least 10 minutes, if possible, and use other queues.
-# normal	The default queue. For jobs running for up to an hour each. There is a hard limit of 12 hours, after which your job will be killed.
-# hugemem	Queue for jobs which require > 196 GB of memory. You must specify how much memory you expect your job to use.
-# teramem	Queue for jobs which require > 745 GB of memory. You must specify how much memory you expect your job to use.
-# long	Queue for long running jobs (> 1 hour). There is a hard limit of 48 hours, after which the job will be killed. [1, 48] 
-# basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
-#Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
 import sys, json, os, hashlib, time
 from datetime import datetime
 from collections import OrderedDict
@@ -35,7 +26,6 @@ class manager:
             return 0
         rjobq = []
         for j in jobq:
-            # if j.platform != "BASH":
             j.set_retries(self.retries)
             if force or not self.check_job(j): #force or not run sucessfully before
                 if force:
@@ -44,29 +34,6 @@ class manager:
                 if j.run():
                     j.set_retries(0)
                     j.set_rtn(1)
-            
-            # if force:
-                # rjobq.append(j)
-                # if j.run():
-                    # j.set_retries(0)
-                    # j.set_rtn(1)
-            # elif self.check_job(j):
-                # continue
-            # else:
-                # rjobq.append(j)
-                # if j.run():
-                    # j.set_retries(0)
-                    # j.set_rtn(1)
-            # if self.check_job(j) && not force: #been done
-                # j.set_rtn(0) #has been run successfully
-                # continue
-            # elif j.run():
-                # j.set_retries(0)
-                # j.set_rtn(1)
-                # sys.exit(1) # correct or should 
-            # else:
-                # rjobq.append(j)
-        # artn = 0 
         while True:
             for j in rjobq: # can be problem if job has been finished?
                 j.check_status()
@@ -96,12 +63,10 @@ class manager:
                             else:
                                 print ("unkown error, please check error log")
                                 j.reset_retries()
-                    elif not j.suc:
-                        self.tag_job(j)
-                        j.set_suc() # in case of tag again, better way?
-                        j.reset_retries()
-                    # else:
-                        # artn = 1
+                        elif not j.suc:
+                            self.tag_job(j)
+                            j.set_suc() # in case of tag again, better way?
+                            j.reset_retries()
             if all(j.retries == 0 for j in rjobq):
                 break
             time.sleep(self.wait)    
@@ -199,3 +164,15 @@ class manager:
             return True 
         else:
             return False 
+
+
+# Notes on LSF Platform
+# only take two types of error
+#yesterday	High priority queue (as in "I needed this run yesterday"). You can only run 10 jobs at a time in this queue.
+# small	Queue for short running jobs (< 1 minute). Has job-chunking enabled (see the LSF docs). Such short jobs are generally a bad idea; try to make your jobs run for at least 10 minutes, if possible, and use other queues.
+# normal	The default queue. For jobs running for up to an hour each. There is a hard limit of 12 hours, after which your job will be killed.
+# hugemem	Queue for jobs which require > 196 GB of memory. You must specify how much memory you expect your job to use.
+# teramem	Queue for jobs which require > 745 GB of memory. You must specify how much memory you expect your job to use.
+# long	Queue for long running jobs (> 1 hour). There is a hard limit of 48 hours, after which the job will be killed. [1, 48] 
+# basement	Queue for jobs which run for more than a day. You should consider checkpointing long running jobs [0,24]
+#Parallel Queue for multi-node, multi-cpu jobs (ie PVM/MPI jobs, not threaded jobs).
