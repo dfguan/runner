@@ -63,10 +63,10 @@ class manager:
                             else:
                                 print ("unkown error, please check error log")
                                 j.reset_retries()
-                        elif not j.suc:
-                            self.tag_job(j)
-                            j.set_suc() # in case of tag again, better way?
-                            j.reset_retries()
+                    elif not j.suc:
+                        self.tag_job(j)
+                        j.set_suc() # in case of tag again, better way?
+                        j.reset_retries()
             if all(j.retries == 0 for j in rjobq):
                 break
             time.sleep(self.wait)    

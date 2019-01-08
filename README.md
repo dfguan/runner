@@ -8,5 +8,6 @@ A simple python wrapper for job submitting
 4. force functions/jobs to run (Done, tested on LSF)
 5. use process watchers instead of wait func (Done, tested on LSF)
 ## To Do
+- [ ] allow to select CPUs, HOSTs, etc..
 - [ ] submit slurm jobs 
 - [ ] draft wiki pages
