@@ -44,7 +44,7 @@ class manager:
                             if tp == 1: # these codes are related to your system, need a config file
                                 print ("extend memory and try again")
                                 j.ext_mem()
-                                if self.adj_queue(j, self.sys[j.platform]["queues"]):
+                                if j.adjq(self.sys[j.platform]["queues"]):
                                     j.run()    
                                     j.decre_retries()
                                 else:
@@ -52,7 +52,7 @@ class manager:
                                     j.reset_retries()
                             elif tp == 2: # these codes are related to your system, need a config file
                                 print ("change job queue and try again")
-                                if self.change_queue(j, self.sys[j.platform]["queues"]):
+                                if j.chgq(self.sys[j.platform]["queues"]):
                                     j.run()
                                     j.decre_retries()
                                 else:
@@ -80,19 +80,6 @@ class manager:
         
         # return artn
 
-    def adj_queue(self, j, qs):
-        [lm, hm] = [int(z) for z in qs[j.queue][0].split(" ")]
-        found = False
-        if j.mem >= hm:
-            for q in qs:
-                [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
-                if j.mem < hm:
-                    j.set_queue(q)
-                    found = True 
-                    break
-        else:
-            found = True
-        return found 
     
     def check_errt(self, j):
         rtn = j.rtn
@@ -108,17 +95,6 @@ class manager:
 
 
 
-    def change_queue(self, j, qs):
-        t = 2 * qs[j.queue][1]
-        found = False
-        for q in qs:
-            [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
-            tl = qs[q][1]
-            if t < tl and j.mem < hm:
-                j.set_queue(q)
-                found = True 
-                break
-        return found
     
     def rm_tag(self, j):
         #tag a job if run sucessfully

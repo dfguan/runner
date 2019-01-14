@@ -18,6 +18,17 @@ class hpc:
         else:
             self.mem = 1000
         
+        if "time" in kwargs:
+            self.time = kwargs["time"]
+        else:
+            self.time = "05:00:00"
+       
+        if "nt" in kwargs:
+            self.ntasks = kwargs["nt"]
+        else:
+            self.ntasks = 1 
+
+
         if "core" in kwargs:
             self.core = kwargs["core"]
         else:
@@ -48,13 +59,12 @@ class hpc:
             return 1
 
         if self.platform == 'BASH':
-            self.sub_cmd = self.cmd
+            self.sub_cmd = self.cmd.split(' ') if type(self.cmd) == str else self.cmd
         elif self.platform == 'LSF':
             # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
             self.sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
         elif self.platform == 'SLURM':
-            print ("not done yet")
-            return 1
+            self.sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', self.ntasks, '-c', str(self.core), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
         elif self.platform == 'MPM':
             print ("not done yet")
             return 1
@@ -66,7 +76,7 @@ class hpc:
                 self.fout = open(self.out, 'w')
                 self.ferr = open(self.err, 'w')
                 self.p = Popen(self.sub_cmd, stdout=self.fout, stderr=self.ferr)
-            elif self.platform == "LSF":
+            elif self.platform == "LSF" || self.platform == "SLURM":
                 # print (self.sub_cmd)
                 self.p = Popen(self.sub_cmd)
             else:
@@ -108,35 +118,61 @@ class hpc:
         self.err = err_fl
     def set_out(self, out_fl):
         self.out = out_fl
-    def set_job(self, cmd, **kwargs):
-        self.cmd = cmd
-        if "jn" in kwargs:
-            set_jn(kwargs["jn"])
-        if "mem" in kwargs:
-            set_mem(kwargs["mem"])
-        if "queue" in kwargs:
-            set_queue(kwargs["queue"])
-        if "core" in kwargs:
-            set_core(kwargs["core"])
-        if "err" in kwargs:
-            set_err(kwargs["err"])
-        if "out" in kwargs:
-            set_out(kwargs["out"])
+
+    # def set_job(self, cmd, **kwargs):
+        # self.cmd = cmd
+        # if "jn" in kwargs:
+            # set_jn(kwargs["jn"])
+        # if "mem" in kwargs:
+            # set_mem(kwargs["mem"])
+        # if "queue" in kwargs:
+            # set_queue(kwargs["queue"])
+        # if "core" in kwargs:
+            # set_core(kwargs["core"])
+        # if "err" in kwargs:
+            # set_err(kwargs["err"])
+        # if "out" in kwargs:
+            # set_out(kwargs["out"])
+    def set_time(self, ntime):
+        self.time = ntime
+
     def set_retries(self, times):
         self.retries = times
     
-    def ext_mem(self):
-        self.mem *= 2
-    
+
     def set_rtn(self, n):
         self.rtn = n
     def reset_retries(self):
         self.retries = 0
+    def decre_retries(self):
+        self.retries = self.retries - 1
     def set_suc(self):
         self.suc = 1
 
-    def decre_retries(self):
-        self.retries = self.retries - 1
+    def ext_mem(self):
+        self.mem *= 2
+    
+    def ext_time(self, qs):
+        found = False
+        if self.platform == "LSF": 
+            t = 2 * qs[self.queue][1]
+            for q in qs:
+                [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
+                tl = qs[q][1]
+                if t < tl and self.mem < hm:
+                    self.set_queue(q)
+                    found = True 
+                    break
+        else:
+            tm_lst = [2 * int(i) for i in self.time.split(':')]
+            for idx, v in enumerate(tm_lst):
+                if v > 99:
+                    tm_lst[idx] = 99
+            self.set_time("{0[0]}:{0[1]}:{0[2]}".format(tm_lst))
+            found = True
+        return found
+    
+    
 
     def check_status(self):
         if hasattr(self, 'p'):
@@ -145,3 +181,23 @@ class hpc:
                 self.fout.close()
                 self.ferr.close()
         return self.rtn
+    
+    def adjq(self, qs):
+        found = False
+        if self.platform == "LSF":
+            [lm, hm] = [int(z) for z in qs[self.queue][0].split(" ")]
+            found = False
+            if self.mem >= hm:
+                for q in qs:
+                    [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
+                    if self.mem < hm:
+                        self.set_queue(q)
+                        found = True 
+                        break
+            else:
+                found = True
+        elif self.platform == "SLURM": 
+            found = True
+
+        return found 
+    
