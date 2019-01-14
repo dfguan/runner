@@ -17,12 +17,12 @@ def func1(man):
 
 
 if __name__ == '__main__':
-    m = manager(retries=5)  
+    m = manager(wait=10,retries=5)  
     procs = []
     # p = hpc(cmd="ls -l > files")
     # p = hpc(cmd=["ls", '-l'], out="files")
-    p = hpc("lsf", cmd="ls -l > fls", mem=1000, out="test_1.o", err="test_1.e")
-    # p.speak()
+    p = hpc("slurm", cmd="ls -l > fls", mem=1000, out="test_1.o", err="test_1.e")
+    p.speak()
     procs.append(p)
     m.start(procs, True)
     # procs2 = []

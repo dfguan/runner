@@ -23,11 +23,15 @@ class hpc:
         else:
             self.time = "05:00:00"
        
-        if "nt" in kwargs:
+        if "ntasks" in kwargs:
             self.ntasks = kwargs["nt"]
         else:
             self.ntasks = 1 
 
+        if "array" in kwargs:
+            self.array = kwargs["nt"]
+        else:
+            self.array = 1 
 
         if "core" in kwargs:
             self.core = kwargs["core"]
@@ -64,7 +68,7 @@ class hpc:
             # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
             self.sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
         elif self.platform == 'SLURM':
-            self.sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', self.ntasks, '-c', str(self.core), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
+            self.sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', str(self.ntasks), '-c', str(self.core), '--array', str(self.array), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
         elif self.platform == 'MPM':
             print ("not done yet")
             return 1
@@ -76,8 +80,7 @@ class hpc:
                 self.fout = open(self.out, 'w')
                 self.ferr = open(self.err, 'w')
                 self.p = Popen(self.sub_cmd, stdout=self.fout, stderr=self.ferr)
-            elif self.platform == "LSF" || self.platform == "SLURM":
-                # print (self.sub_cmd)
+            elif self.platform == "LSF" or self.platform == "SLURM":
                 self.p = Popen(self.sub_cmd)
             else:
                 return 1
