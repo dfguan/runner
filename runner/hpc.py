@@ -84,8 +84,8 @@ class hpc:
                 self.p = Popen(self.sub_cmd)
             else:
                 return 1
-        except FileNotFoundError:
-            print ("File {} not found".format(self.sub_cmd[0]))
+        except:
+            print ("File not found CMD: {}".format(self.sub_cmd))
             return 1
         return 0
         # except :
