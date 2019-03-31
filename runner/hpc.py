@@ -204,14 +204,18 @@ class hpc:
         elif self.platform == "SLURM": 
             found = True
         return found 
+
     def chgq(self, qs):
-        t = 2 * qs[j.queue][1]
+        t = 2 * qs[self.queue][1]
         found = False
-        for q in qs:
-            [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
-            tl = qs[q][1]
-            if t < tl and j.mem < hm:
-                j.set_queue(q)
-                found = True 
-                break
+        if self.platform == "LSF":
+            for q in qs:
+                [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
+                tl = qs[q][1]
+                if t < tl and self.mem < hm:
+                    self.set_queue(q)
+                    found = True 
+                    break
+        elif self.platform == "SLURM": 
+            found = True
         return found
