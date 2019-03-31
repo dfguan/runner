@@ -63,7 +63,9 @@ class hpc:
             return 1
 
         if self.platform == 'BASH':
-            self.sub_cmd = self.cmd.split(' ') if type(self.cmd) == str else self.cmd
+            self.sub_cmd = ['bash', '-c']
+            cmd_str = self.cmd if type(self.cmd) == str else ' '.join(self.cmd)
+            self.sub_cmd.append(cmd_str) 
         elif self.platform == 'LSF':
             # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
             self.sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
@@ -201,6 +203,15 @@ class hpc:
                 found = True
         elif self.platform == "SLURM": 
             found = True
-
         return found 
-    
+    def chgq(self, qs):
+        t = 2 * qs[j.queue][1]
+        found = False
+        for q in qs:
+            [lm, hm] = [int(z) for z in qs[q][0].split(" ")]
+            tl = qs[q][1]
+            if t < tl and j.mem < hm:
+                j.set_queue(q)
+                found = True 
+                break
+        return found
