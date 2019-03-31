@@ -65,7 +65,7 @@ class manager:
                         self.tag_job(j)
                         j.set_suc() # in case of tag again, better way?
                         j.reset_retries()
-            if all(j.retries == 0 for j in rjobq):
+            if all(j.retries == 0 and j.rtn is not None for j in rjobq):
                 break
             time.sleep(self.wait)    
         suc = all(j.rtn == 0 for j in rjobq)
