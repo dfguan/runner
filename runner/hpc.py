@@ -78,6 +78,7 @@ class hpc:
             print ("{} is not supported".format(self.platform))
             return 1
         try:
+            self.rtn = None # set exit code to None to fix the last successful try bug   
             if self.platform == "BASH":
                 self.fout = open(self.out, 'w')
                 self.ferr = open(self.err, 'w')

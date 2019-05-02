@@ -1,11 +1,11 @@
 # runner
-A simple python wrapper for job submitting
+A simple python wrapper for HPC job submission, now supports LSF and Slurm. 
 
 # Installation
 ```
 python setup.py install 
 ```
-Notice: this will install modules to system python path, try "python setup.py install --prefix=LOCAL\_PATH" if you want to install them somewhere else.
+Notice: this will install the package to a system python path, if you don't have admistrative privilege, try using "python setup.py install --prefix=LOCAL\_PATH" or simply run "python setup.py install --user".
 
 ## Done
 1. support multiple HPC platforms, including Slurm, LSF etc. (Done, tested on LSF, Slurm). 
