@@ -62,6 +62,7 @@ class manager:
                                 print ("unkown error, please check error log")
                                 j.reset_retries()
                     elif not j.suc:
+                        print ("command {0} run successfully".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
                         self.tag_job(j)
                         j.set_suc() # in case of tag again, better way?
                         j.reset_retries()
