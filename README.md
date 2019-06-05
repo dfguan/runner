@@ -13,8 +13,8 @@ Notice: this will install the package to a system python path, if you don't have
 3. resubmit jobs that fails (Done, tested on LSF).
 4. force functions/jobs to run (Done, tested on LSF)
 5. use process watchers instead of wait func (Done, tested on LSF)
-
+6. allow to select CPUs, HOSTs (Done, but not tested yet)
 ## To Do
-- [ ] allow to select CPUs, HOSTs, etc..
-- [ ] draft wiki pages
-
+- [ ] need to think of how to handle complex conditions on HOSTs (functional enhancement)
+- [ ] format function and string conversion is being mixed used (code polishing) 
+- [ ] draft wiki pages (explaination)

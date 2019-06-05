@@ -21,11 +21,11 @@ if __name__ == '__main__':
     procs = []
     # p = hpc(cmd="ls -l > files")
     # p = hpc(cmd=["ls", '-l'], out="files")
-    p = hpc("lsf", cmd="ls -l > fls", mem=1000, out="test_1.o", err="test_1.e")
+    p = hpc("LSF", cmd="ls -l > fls", cpu="avx", mem=1000, hosts="a||b||c", out="test_1.o", err="test_1.e")
     # p.chgq(m.sys[p.platform]["queues"])
     p.speak()
-    procs.append(p)
-    m.start(procs, True)
+    # procs.append(p)
+    # m.start(procs)
     # procs2 = []
     # p = Process(target=func2, args=(m,))
     # procs2.append(p)
