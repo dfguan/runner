@@ -70,6 +70,8 @@ class manager:
                 break
             time.sleep(self.wait)    
         suc = all(j.rtn == 0 for j in rjobq)
+        # for j in rjobq:
+            # print ("command {0} return code: {1}".format(j.cmd if type(j.cmd) == str else " ".join(j.cmd), str(j.rtn)))
         if suc:
             return 0
         else:
