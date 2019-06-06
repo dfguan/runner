@@ -68,44 +68,38 @@ class hpc:
         else:
             self.queue = "normal"
         
-        if len(self.cmd) != 0 :  
-            if self.platform == 'BASH':
-                sub_cmd = ['bash', '-c']
-                cmd_str = self.cmd if type(self.cmd) == str else ' '.join(self.cmd)
-                sub_cmd.append(cmd_str) 
-            elif self.platform == 'LSF':
-                # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
-                if self.cpu != "":
-                    cpu_sel = '-R{}'.format(self.cpu)
-                else:
-                    cpu_sel = ''
-
-                if self.hosts != "":
-                    hosts_sel = "-Rselect[(" + "||".join([ "hname==" + "'{}'".format(s)  for s in self.hosts.split("||")]) + ")]" 
-                else:
-                    hosts_sel = ""
-                sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), cpu_sel, hosts_sel, '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
-            elif self.platform == 'SLURM':
-                sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', str(self.ntasks), '-c', str(self.core), '--array', str(self.array), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
-            elif self.platform == 'MPM':
-                print ("not done yet")
-                sub_cmd = None
-            else:
-                print ("{} is not supported".format(self.platform))
-                sub_cmd = None
-        else:
-            sub_cmd = None
-
-        if sub_cmd: 
-            self.sub_cmd = [ x for x in sub_cmd if x]
-        else:
-            self.sub_cmd = None
 
 
     def run(self):
-        if self.sub_cmd is None:
+        if len(self.cmd) == 0 :  
             print ("command not found!")
             return 1
+        if self.platform == 'BASH':
+            sub_cmd = ['bash', '-c']
+            cmd_str = self.cmd if type(self.cmd) == str else ' '.join(self.cmd)
+            sub_cmd.append(cmd_str) 
+        elif self.platform == 'LSF':
+            # self.sub_cmd = 'bsub -K -q{6} -M{0} -n{1} -R"select[mem>{0}] rusage[mem={0}] span[hosts=1]" -J{2} -o {3} -e {4} {5}'.format(str(self.mem), str(self.core), self.jn, self.out, self.err, self.cmd, self.queue)
+            if self.cpu != "":
+                cpu_sel = '-R{}'.format(self.cpu)
+            else:
+                cpu_sel = ''
+
+            if self.hosts != "":
+                hosts_sel = "-Rselect[(" + "||".join([ "hname==" + "'{}'".format(s)  for s in self.hosts.split("||")]) + ")]"  # use double quote here maybe inconsisten with the others
+            else:
+                hosts_sel = ""
+            sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), cpu_sel, hosts_sel, '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
+        elif self.platform == 'SLURM':
+            sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', str(self.ntasks), '-c', str(self.core), '--array', str(self.array), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
+        elif self.platform == 'MPM':
+            print ("not done yet")
+            return 1
+        else:
+            print ("{} is not supported".format(self.platform))
+            return 1
+
+        self.sub_cmd = [ x for x in sub_cmd if x]
 
         try:
             self.rtn = None # set exit code to None to fix the last successful try bug   
@@ -116,7 +110,6 @@ class hpc:
             elif self.platform == "LSF" or self.platform == "SLURM":
                 self.p = Popen(self.sub_cmd)
                 # print("the commandline is {}".format(self.p.args))
-
             else:
                 return 1
         except:
