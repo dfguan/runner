@@ -27,6 +27,11 @@ class hpc:
             self.cpu = kwargs["cpu"]
         else:
             self.cpu = ""
+
+        if "cpuf" in kwargs:
+            self.cpuf = kwargs["cpu"]
+        else:
+            self.cpuf = 0
         
         if "hosts" in kwargs:
             self.hosts = kwargs["hosts"]
@@ -84,12 +89,17 @@ class hpc:
                 cpu_sel = '-R{}'.format(self.cpu)
             else:
                 cpu_sel = ''
+            
+            if self.cpuf != 0:
+                cpuf_sel = '-R"select[cpuf=='+str(self.cpuf)+']"'
+            else:
+                cpuf_sel = ''
 
             if self.hosts != "":
                 hosts_sel = "-Rselect[(" + "||".join([ "hname==" + "'{}'".format(s)  for s in self.hosts.split("||")]) + ")]"  # use double quote here maybe inconsisten with the others
             else:
                 hosts_sel = ""
-            sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), cpu_sel, hosts_sel, '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
+            sub_cmd = ['bsub', '-K', '-q', self.queue, '-M', str(self.mem), cpu_sel, cpuf_sel, hosts_sel, '-n', str(self.core), '-R"select[mem>'+str(self.mem)+'] rusage[mem='+str(self.mem)+'] span[hosts=1]"', '-J', self.jn,  '-o', self.out, '-e', self.err, self.cmd]
         elif self.platform == 'SLURM':
             sub_cmd = ['sbatch', '-W', '-t', self.time, '--mem', str(self.mem), '-n', str(self.ntasks), '-c', str(self.core), '--array', str(self.array), '-J', self.jn, '-o', self.out, '-e', self.err, '--wrap', self.cmd]
         elif self.platform == 'MPM':
